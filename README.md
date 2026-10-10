@@ -12,6 +12,10 @@ web page on your local network:
 - the UP and DOWN relays are never energised together, and every
   movement stops automatically after `TRAVEL_SECONDS`.
 
+<div align="center">
+  <img src="pictures/schema.jpg" alt="Wiring diagram" width="80%">
+</div>
+
 ## How it matches your wiring
 
 If your shutter's wall switch has three positions (UP / NEUTRAL / DOWN) that route
