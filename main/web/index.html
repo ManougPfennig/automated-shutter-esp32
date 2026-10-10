@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shutter Control</title>
+<style>
+  :root {
+    --bg: #15191d;
+    --panel: #1e242a;
+    --panel-line: #2b3239;
+    --text: #e7eaec;
+    --muted: #8b939b;
+    --amber: #e8a33d;
+    --green: #4fb286;
+    --red: #d9665f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px 64px;
+  }
+  main { width: 100%; max-width: 420px; }
+
+  header { margin-bottom: 24px; }
+  header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0 0 4px;
+  }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+
+  /* status */
+  .status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+  .dot.moving { background: var(--amber); animation: pulse 1s infinite ease-in-out; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .status-text { font-size: 15px; font-weight: 500; }
+  .status-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .relay-pair { display: flex; gap: 8px; }
+  .relay-pill {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    border-radius: 6px;
+    border: 1px solid var(--panel-line);
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .relay-pill.active {
+    background: rgba(232, 163, 61, 0.12);
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  /* schedule form */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field input[type="time"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 9px 10px;
+    font-size: 15px;
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+  }
+  .field input[type="time"]:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+
+  /* schedule on/off switch */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .toggle-row .toggle-label { font-size: 14px; }
+  .toggle-row .toggle-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+  .switch .slider {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    border: 1px solid var(--panel-line);
+    border-radius: 11px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .switch .slider::before {
+    content: "";
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 2px; top: 2px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: transform 0.15s, background 0.15s;
+  }
+  .switch input:checked + .slider { background: rgba(79, 178, 134, 0.15); border-color: var(--green); }
+  .switch input:checked + .slider::before { transform: translateX(18px); background: var(--green); }
+  .switch input:focus-visible + .slider { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .switch input:disabled { cursor: not-allowed; }
+  .switch input:disabled + .slider { opacity: 0.45; }
+  #schedule-form.paused .field { opacity: 0.5; }
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-primary { background: var(--amber); color: #1a1300; width: 100%; }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+  .manual-row { display: flex; gap: 8px; }
+  .btn-secondary {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--panel-line);
+    color: var(--text);
+  }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--green); color: var(--green); }
+  .btn-stop {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--red);
+    color: var(--red);
+  }
+  .btn-stop:hover:not(:disabled) { background: rgba(217, 102, 95, 0.12); }
+
+  .msg { font-size: 12px; margin-top: 10px; min-height: 14px; }
+  .msg.ok { color: var(--green); }
+  .msg.err { color: var(--red); }
+
+  footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Shutter Control</h1>
+  </header>
+
+  <section class="panel">
+    <h2>Status</h2>
+    <div class="status-row">
+      <span class="dot" id="status-dot"></span>
+      <div>
+        <div class="status-text" id="status-text">Loading…</div>
+        <div class="status-sub" id="status-sub"></div>
+      </div>
+    </div>
+    <div class="relay-pair">
+      <div class="relay-pill" id="pill-up">UP RELAY</div>
+      <div class="relay-pill" id="pill-down">DOWN RELAY</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Schedule</h2>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label" id="schedule-toggle-label">Automatic schedule</div>
+        <div class="toggle-sub" id="schedule-toggle-sub"></div>
+      </div>
+      <span class="switch">
+        <input type="checkbox" role="switch" id="schedule_enabled" aria-labelledby="schedule-toggle-label" {{ schedule_checked }}>
+        <span class="slider"></span>
+      </span>
+    </div>
+    <form id="schedule-form">
+      <div class="field">
+        <label for="open_time">Open at</label>
+        <input type="time" id="open_time" name="open_time" value="{{ open_time }}" required>
+      </div>
+      <div class="field">
+        <label for="close_time">Close at</label>
+        <input type="time" id="close_time" name="close_time" value="{{ close_time }}" required>
+      </div>
+      <button type="submit" class="btn-primary">Save schedule</button>
+      <div class="msg" id="schedule-msg"></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Manual control</h2>
+    <div class="manual-row">
+      <button class="btn-secondary" id="btn-open">Open now</button>
+      <button class="btn-secondary" id="btn-close">Close now</button>
+      <button class="btn-stop" id="btn-stop">Stop</button>
+    </div>
+    <div class="msg" id="manual-msg"></div>
+  </section>
+</main>
+
+<script>
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const statusSub = document.getElementById('status-sub');
+const pillUp = document.getElementById('pill-up');
+const pillDown = document.getElementById('pill-down');
+const btnOpen = document.getElementById('btn-open');
+const btnClose = document.getElementById('btn-close');
+const btnStop = document.getElementById('btn-stop');
+const manualMsg = document.getElementById('manual-msg');
+const scheduleForm = document.getElementById('schedule-form');
+const scheduleMsg = document.getElementById('schedule-msg');
+const scheduleToggle = document.getElementById('schedule_enabled');
+const scheduleToggleSub = document.getElementById('schedule-toggle-sub');
+
+// Bumped on every switch change so a status poll started before the
+// change can't flip the switch back with stale data.
+let scheduleToggleSeq = 0;
+let scheduleTogglePending = false;
+
+function applyScheduleEnabled(enabled) {
+  scheduleToggle.checked = enabled;
+  scheduleForm.classList.toggle('paused', !enabled);
+  scheduleToggleSub.textContent = enabled
+    ? 'Opens and closes at the times below'
+    : 'Paused — the shutter only moves manually';
+}
+
+function describeStatus(state) {
+  if (state.status === 'opening') return 'Opening…';
+  if (state.status === 'closing') return 'Closing…';
+  return 'Idle';
+}
+
+function relativeTime(ts) {
+  if (!ts) return 'No actions yet';
+  const seconds = Math.round(Date.now() / 1000 - ts);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours}h ago`;
+}
+
+async function refreshStatus() {
+  const seq = scheduleToggleSeq;
+  try {
+    const res = await fetch('/api/status');
+    const state = await res.json();
+
+    if (!scheduleTogglePending && seq === scheduleToggleSeq
+        && typeof state.schedule_enabled === 'boolean') {
+      applyScheduleEnabled(state.schedule_enabled);
+    }
+
+    const moving = state.status !== 'idle';
+    statusDot.classList.toggle('moving', moving);
+    statusText.textContent = describeStatus(state);
+
+    const lastAction = state.last_action ? `Last action: ${state.last_action}` : 'No actions yet';
+    statusSub.textContent = state.last_action_time
+      ? `${lastAction} · ${relativeTime(state.last_action_time)}`
+      : lastAction;
+
+    pillUp.classList.toggle('active', state.status === 'opening');
+    pillDown.classList.toggle('active', state.status === 'closing');
+
+    btnOpen.disabled = moving;
+    btnClose.disabled = moving;
+  } catch (e) {
+    statusText.textContent = 'Unable to reach server';
+  }
+}
+
+async function sendManual(action) {
+  manualMsg.textContent = '';
+  manualMsg.className = 'msg';
+  try {
+    const res = await fetch(`/api/manual/${action}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      manualMsg.textContent = data.error || 'Action failed';
+      manualMsg.className = 'msg err';
+    }
+    refreshStatus();
+  } catch (e) {
+    manualMsg.textContent = 'Unable to reach server';
+    manualMsg.className = 'msg err';
+  }
+}
+
+btnOpen.addEventListener('click', () => sendManual('open'));
+btnClose.addEventListener('click', () => sendManual('close'));
+btnStop.addEventListener('click', () => sendManual('stop'));
+
+scheduleForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  scheduleMsg.textContent = '';
+  scheduleMsg.className = 'msg';
+  const open_time = document.getElementById('open_time').value;
+  const close_time = document.getElementById('close_time').value;
+
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ open_time, close_time })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      scheduleMsg.textContent = 'Schedule saved.';
+      scheduleMsg.className = 'msg ok';
+    } else {
+      scheduleMsg.textContent = data.error || 'Could not save schedule';
+      scheduleMsg.className = 'msg err';
+    }
+  } catch (e) {
+    scheduleMsg.textContent = 'Unable to reach server';
+    scheduleMsg.className = 'msg err';
+  }
+});
+
+scheduleToggle.addEventListener('change', async () => {
+  const enabled = scheduleToggle.checked;
+  scheduleToggleSeq++;
+  scheduleTogglePending = true;
+  scheduleToggle.disabled = true;
+  applyScheduleEnabled(enabled);
+  scheduleMsg.textContent = '';
+  scheduleMsg.className = 'msg';
+
+  try {
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      applyScheduleEnabled(data.schedule_enabled);
+      scheduleMsg.textContent = data.schedule_enabled ? 'Schedule enabled.' : 'Schedule disabled.';
+      scheduleMsg.className = 'msg ok';
+    } else {
+      applyScheduleEnabled(!enabled);
+      scheduleMsg.textContent = data.error || 'Could not update schedule';
+      scheduleMsg.className = 'msg err';
+    }
+  } catch (e) {
+    applyScheduleEnabled(!enabled);
+    scheduleMsg.textContent = 'Unable to reach server';
+    scheduleMsg.className = 'msg err';
+  } finally {
+    scheduleTogglePending = false;
+    scheduleToggle.disabled = false;
+  }
+});
+
+applyScheduleEnabled(scheduleToggle.checked);
+refreshStatus();
+setInterval(refreshStatus, 2000);
+</script>
+</body>
+</html>

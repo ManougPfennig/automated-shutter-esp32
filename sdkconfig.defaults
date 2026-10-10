@@ -1,0 +1,8 @@
+CONFIG_IDF_TARGET="esp32c3"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+# The ESP32-C3 Super Mini has no USB-UART chip: logs go through the built-in USB-Serial-JTAG
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# 1.5MB app partition: Wi-Fi + HTTP + mDNS leave little room in the default 1MB one
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+# 80MHz is plenty for this firmware and runs cooler than the default 160MHz
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_80=y
