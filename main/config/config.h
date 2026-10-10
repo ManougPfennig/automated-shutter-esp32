@@ -40,7 +40,7 @@
 #define TIMEZONE            "CET-1CEST,M3.5.0,M10.5.0/3"
 #define NTP_SERVER          "pool.ntp.org"
 /* Page reachable at http://<MDNS_HOSTNAME>.local */
-#define MDNS_HOSTNAME       "volet"
+#define MDNS_HOSTNAME       "shutter"
 #define HTTP_PORT           80
 /* Maximum Wi-Fi transmit power, in 0.25 dBm units (8..84, i.e. 2..20 dBm).
  * Higher = better range but more heat. Some ESP32-C3 Super Mini boards have

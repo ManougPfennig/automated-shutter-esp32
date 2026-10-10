@@ -52,6 +52,27 @@ a `stop` action on release.
 - The ESP32-C3 GPIOs are 3.3V: pick relay modules that can be triggered by
   a 3.3V signal (most solid state relays and opto-isolated modules can).
 
+### Power supply
+
+The ESP32 is powered from the same mains wires that feed the shutter, so
+no second power source (USB charger, extra cable) is needed. A
+**HLK-PM01** module (isolated AC-DC converter, 220V AC → 5V DC, 3W)
+is wired in parallel on the shutter supply:
+
+| HLK-PM01  | Connected to                    |
+|-----------|---------------------------------|
+| AC (L)    | live, from the shutter's supply |
+| AC (N)    | neutral, from the shutter's supply |
+| +Vo (5V)  | ESP32-C3 `5V` pin               |
+| -Vo       | ESP32-C3 `GND`                  |
+
+- The module needs **both live and neutral**: check that a neutral wire
+  is available where the controller is installed (a shutter's wall switch
+  box may only have the live and the up/down wires).
+- **Don't plug the USB cable in while the board is powered by the
+  HLK-PM01**: on the Super Mini the `5V` pin is tied to USB VBUS. Cut the
+  mains power before flashing.
+
 **Important:** mains wiring to the shutter motor is not something this
 project can make safe by itself. If the motor runs on mains voltage and
 you're not absolutely sure what you're doing please have your wiring
@@ -60,7 +81,7 @@ done or checked by a qualified electrician.
 ## Files
 
 - [main/config/config.h](main/config/config.h) — pins, relay polarity, travel time, timezone, hostname, default schedule
-- [main/config/wifi_config.h.example](main/config/wifi_config.h.example) — template for your Wi-Fi credentials
+- [main/config/wifi_config.h](main/config/wifi_config.h) — template for your Wi-Fi credentials
 - [main/hardware/shutter_controller.c](main/hardware/shutter_controller.c) — relay logic with the up/down safety interlock
 - [main/hardware/buttons.c](main/hardware/buttons.c) — debounced physical buttons
 - [main/scheduling/scheduler.c](main/scheduling/scheduler.c) — checks the configured times every 5s
@@ -72,15 +93,10 @@ done or checked by a qualified electrician.
 ## Configure Wi-Fi
 
 The board has no other way to receive network settings, so they are
-compiled in:
+compiled in.
 
-```bash
-cp main/config/wifi_config.h.example main/config/wifi_config.h
-```
-
-then edit `WIFI_SSID` and `WIFI_PASSWORD` in `main/config/wifi_config.h`. This file
-is git-ignored so your password is never committed. 2.4 GHz networks only
-(WPA2/WPA3).
+Edit `WIFI_SSID` and `WIFI_PASSWORD` in `main/config/wifi_config.h`.
+2.4 GHz networks only (WPA2/WPA3).
 
 The timezone (default Europe/Paris, with automatic summer time) and NTP
 server are set in [main/config/config.h](main/config/config.h). The clock is set over the
