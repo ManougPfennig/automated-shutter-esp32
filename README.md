@@ -13,7 +13,7 @@ web page on your local network:
   movement stops automatically after `TRAVEL_SECONDS`.
 
 <div align="center">
-  <img src="pictures/schema.jpg" alt="Wiring diagram" width="80%">
+  <img src="pictures/schema.png" alt="Wiring diagram" width="80%">
 </div>
 
 ## How it matches your wiring
